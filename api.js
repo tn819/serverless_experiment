@@ -3,11 +3,16 @@ const ApiBuilder = require("claudia-api-builder"),
     AWS = require("aws-sdk"),
     dynamoDb = new AWS.DynamoDB.DocumentClient(),
     uuidV4 = require("uuid/v4"),
-    calcDistance = require("./handlers/distance"),
+    calcDistance = require("./handlers/distance").calcDistance(),
     getLocations = require("./handlers/getLocations"),
     postLocations = require("./handlers/postLocations");
 
 module.exports = api;
+
+let target = {
+    lat: 52.502931,
+    lng: 13.408249
+};
 
 /*
 upload file route
@@ -31,6 +36,7 @@ api.post(
             }
         };
         // return dynamo result directly
+        console.log(request.body);
         return dynamoDb.put(params).promise();
     },
     { success: 201, failure: 400 }
@@ -57,7 +63,11 @@ api.get(
             .promise()
             .then(response => response.Item);
     },
-    { authorizationType: "AWS_IAM" }
+    {
+        authorizationType: "AWS_IAM",
+        success: { contentType: "application/json" },
+        error: { contentType: "application/json" }
+    }
 );
 
 /*
@@ -73,25 +83,29 @@ api.get(
         };
 
         return dynamoDb
-            .query(params)
+            .scan(params)
             .promise()
             .then(response => {
-                response.Items.forEach(item => {
-                    item["distance"] = calcDistance(
-                        {
-                            lat: item.latitude,
-                            lng: item.longitude
-                        },
-                        {
-                            lat: 52.502931,
-                            lng: 13.408249
-                        }
+                let adjustedResponse = response.Items.map(item => {
+                    let { latitude: lat, longitude: lng } = JSON.parse(item);
+                    let itemLocation = { lat, lng };
+                    let distanceFromDestination = calcDistance(
+                        itemLocation,
+                        target
                     );
+                    return {
+                        ...item,
+                        distance: distanceFromDestination
+                    };
                 });
-                console.log(response.Items);
+                console.log(adjustedResponse);
+                return adjustedResponse;
             });
     },
-    { authorizationType: "AWS_IAM" }
+    {
+        authorizationType: "AWS_IAM",
+        error: { contentType: "application/json" }
+    }
 );
 
 api.addPostDeployConfig("tableName", "DynamoDB Table Name:", "configure-db");

@@ -18,7 +18,7 @@ install packages
 npm install
 ```
 
-create endpoint
+creates endpoint in AWS API Gateway, Dynamo DB authorizations for user
 
 ```
 npm run create
@@ -34,7 +34,19 @@ use created URL with routes (AWS_IAM authorized profile needed for gets)
 
 ```
 POST: /location
+```
+
+expects JSON with this body:
+
+```
+{
+    name: "test",
+    latitude: number,
+    longitude: number
+}
+```
+
+```
 GET: /location/{id}
 GET: /locations
-
 ```
