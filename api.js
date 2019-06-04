@@ -1,6 +1,9 @@
 const ApiBuilder = require("claudia-api-builder"),
     api = new ApiBuilder(),
-    superb = require("superb");
+    AWS = require("aws-sdk"),
+    dynamoDb = new AWS.DynamoDB.DocumentClient(),
+    getLocations = require("./handlers/getLocations"),
+    postLocations = require("./handlers/postLocations");
 
 module.exports = api;
 
@@ -8,11 +11,23 @@ module.exports = api;
 
 api.get("/", () => "Welcome to ");
 
-api.post("/location", function(request) {
-    return new Promise(function(resolve, reject) {
-        // some asynchronous operation
-    }).then(() => request.queryString.name + " was saved");
-});
+api.post(
+    "/location",
+    function(request) {
+        var params = {
+            TableName: request.env.tableName,
+            Item: {
+                fileid: request.body.fileId,
+                latitude: request.body.latitude,
+                longitude: request.body.longitude,
+                uploadDate: Date.now()
+            }
+        };
+        // return dynamo result directly
+        return dynamoDb.put(params).promise();
+    },
+    { success: 201 }
+);
 
 /*
 validated routes
@@ -21,20 +36,52 @@ Please develop a second API for internal use. The user should be able to consume
 */
 
 api.get(
-    "/location/:id",
-    function(request) {
-        return request.queryString.name + " is amazing";
+    "/location/{id}",
+    request => {
+        let id, params;
+        // Get the id from the pathParams
+        id = request.pathParams.id;
+        params = {
+            TableName: request.env.tableName,
+            Key: {
+                fileid: id
+            }
+        };
+
+        // post-process dynamo result before returning
+        return dynamoDb
+            .get(params)
+            .promise()
+            .then(response => response.Item);
     },
     { authorizationType: "AWS_IAM" }
 );
+
+batchGetItem;
 
 /*
 Details of a location: name, latitude, longitude, all additional data, a calculated distance to our office (bee line distance, no map service; lat: 52.502931, lng: 13.408249).
 */
 api.get(
-    "/locations/",
-    function(request) {
-        return request.queryString.name + " is amazing";
+    "/locations",
+    request => {
+        let id, params;
+        // Get the id from the pathParams
+        id = request.pathParams.id;
+        params = {
+            TableName: request.env.tableName,
+            Key: {
+                fileid: id
+            }
+        };
+
+        // post-process dynamo result before returning
+        return dynamoDb
+            .get(params)
+            .promise()
+            .then(response => response.Item);
     },
     { authorizationType: "AWS_IAM" }
 );
+
+api.addPostDeployConfig("tableName", "DynamoDB Table Name:", "configure-db");
