@@ -2,15 +2,20 @@ const ApiBuilder = require("claudia-api-builder"),
     api = new ApiBuilder(),
     AWS = require("aws-sdk"),
     dynamoDb = new AWS.DynamoDB.DocumentClient(),
-    calcDistance = require("./handlers/distance");
-(getLocations = require("./handlers/getLocations")),
-    (postLocations = require("./handlers/postLocations"));
+    uuidV4 = require("uuid/v4"),
+    calcDistance = require("./handlers/distance"),
+    getLocations = require("./handlers/getLocations"),
+    postLocations = require("./handlers/postLocations");
 
 module.exports = api;
 
-//Please develop an API that enables an external/unknown user to upload files. The file name is supposed to describe a location; the file should contain latitude, longitude and additional/optional data (this is not further defined). The uploaded file should be formatted in JSON.
+/*
+upload file route
+The file name is supposed to describe a location; the file should contain latitude, longitude and additional/optional data (this is not further defined). The uploaded file should be formatted in JSON.
 
-api.get("/", () => "Welcome to ");
+*/
+
+api.get("/", () => `Welcome to ${uuidV4()}`);
 
 api.post(
     "/location",
@@ -18,7 +23,8 @@ api.post(
         var params = {
             TableName: request.env.tableName,
             Item: {
-                fileid: request.body.fileId,
+                fileid: uuidV4(),
+                name: request.body.name,
                 latitude: request.body.latitude,
                 longitude: request.body.longitude,
                 uploadDate: Date.now()
@@ -27,7 +33,7 @@ api.post(
         // return dynamo result directly
         return dynamoDb.put(params).promise();
     },
-    { success: 201 }
+    { success: 201, failure: 400 }
 );
 
 /*
@@ -69,7 +75,7 @@ api.get(
         return dynamoDb
             .query(params)
             .promise()
-            .then(response =>
+            .then(response => {
                 response.Items.forEach(item => {
                     item["distance"] = calcDistance(
                         {
@@ -81,8 +87,9 @@ api.get(
                             lng: 13.408249
                         }
                     );
-                })
-            );
+                });
+                console.log(response.Items);
+            });
     },
     { authorizationType: "AWS_IAM" }
 );
