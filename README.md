@@ -4,7 +4,8 @@
 2. internal api for getting all locations
 3. internal api for getting location details
 
-##build steps
+## build steps
+
 configure AWS and get necessary authorizations
 
 1. https://github.com/claudiajs/claudia-api-builder/blob/master/docs/authorization.md
