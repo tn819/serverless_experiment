@@ -1,0 +1,11 @@
+{
+  "lambda": {
+    "role": "user_locations_api-executor",
+    "name": "user_locations_api",
+    "region": "us-east-1"
+  },
+  "api": {
+    "id": "plrtlsmnij",
+    "module": "api"
+  }
+}

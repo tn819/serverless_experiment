@@ -2,8 +2,9 @@ const ApiBuilder = require("claudia-api-builder"),
     api = new ApiBuilder(),
     AWS = require("aws-sdk"),
     dynamoDb = new AWS.DynamoDB.DocumentClient(),
-    getLocations = require("./handlers/getLocations"),
-    postLocations = require("./handlers/postLocations");
+    calcDistance = require("./handlers/distance");
+(getLocations = require("./handlers/getLocations")),
+    (postLocations = require("./handlers/postLocations"));
 
 module.exports = api;
 
@@ -30,16 +31,13 @@ api.post(
 );
 
 /*
-validated routes
-Please develop a second API for internal use. The user should be able to consume the uploades data via two endpoints.
-
+validated routes - internal use
 */
 
 api.get(
     "/location/{id}",
     request => {
         let id, params;
-        // Get the id from the pathParams
         id = request.pathParams.id;
         params = {
             TableName: request.env.tableName,
@@ -48,7 +46,6 @@ api.get(
             }
         };
 
-        // post-process dynamo result before returning
         return dynamoDb
             .get(params)
             .promise()
@@ -57,8 +54,6 @@ api.get(
     { authorizationType: "AWS_IAM" }
 );
 
-batchGetItem;
-
 /*
 Details of a location: name, latitude, longitude, all additional data, a calculated distance to our office (bee line distance, no map service; lat: 52.502931, lng: 13.408249).
 */
@@ -66,20 +61,28 @@ api.get(
     "/locations",
     request => {
         let id, params;
-        // Get the id from the pathParams
         id = request.pathParams.id;
         params = {
-            TableName: request.env.tableName,
-            Key: {
-                fileid: id
-            }
+            TableName: request.env.tableName
         };
 
-        // post-process dynamo result before returning
         return dynamoDb
-            .get(params)
+            .query(params)
             .promise()
-            .then(response => response.Item);
+            .then(response =>
+                response.Items.forEach(item => {
+                    item["distance"] = calcDistance(
+                        {
+                            lat: item.latitude,
+                            lng: item.longitude
+                        },
+                        {
+                            lat: 52.502931,
+                            lng: 13.408249
+                        }
+                    );
+                })
+            );
     },
     { authorizationType: "AWS_IAM" }
 );
