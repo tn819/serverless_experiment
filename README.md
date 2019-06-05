@@ -46,7 +46,14 @@ expects JSON with this body:
 }
 ```
 
+return location with distance to office
+
 ```
 GET: /location/{id}
+```
+
+return all locations uploaded to dynamoDb
+
+```
 GET: /locations
 ```
