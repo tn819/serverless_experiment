@@ -50,6 +50,15 @@ return location with distance to office
 
 ```
 GET: /location/{id}
+
+{
+    "uploadDate": 1559655787236,
+    "name": "test",
+    "latitude": 52.5,
+    "fileid": "2532f81d-1bb1-4cc7-a058-9496c7f25ca6",
+    "longitude": 13.4,
+    "distance": 647.246784882032
+}
 ```
 
 return all locations uploaded to dynamoDb
