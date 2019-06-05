@@ -96,7 +96,6 @@ api.get(
             .scan(params)
             .promise()
             .then(response => {
-                console.log(typeof response, response);
                 let results = JSON.stringify(response.Items);
                 return response.Items;
             });
