@@ -3,7 +3,7 @@ const ApiBuilder = require("claudia-api-builder"),
     AWS = require("aws-sdk"),
     dynamoDb = new AWS.DynamoDB.DocumentClient(),
     uuidV4 = require("uuid/v4"),
-    calcDistance = require("./handlers/distance").calcDistance(),
+    distance = require("./handlers/distance"),
     getLocations = require("./handlers/getLocations"),
     postLocations = require("./handlers/postLocations");
 
@@ -35,17 +35,18 @@ api.post(
                 uploadDate: Date.now()
             }
         };
-        // return dynamo result directly
-        console.log(request.body);
         return dynamoDb.put(params).promise();
     },
     { success: 201, failure: 400 }
 );
 
 /*
-validated routes - internal use
+validated routes - internal use, IAM profiles and permissions set up for Dynamo DB as well as API gateway
 */
 
+/*
+Details of a location: name, latitude, longitude, all additional data, a calculated distance to office
+*/
 api.get(
     "/location/{id}",
     request => {
@@ -61,17 +62,26 @@ api.get(
         return dynamoDb
             .get(params)
             .promise()
-            .then(response => response.Item);
+            .then(response => {
+                let parsedResponse = response.Item;
+                let originDistance = distance.calcDistance(target, {
+                    lat: parsedResponse.latitude,
+                    lng: parsedResponse.longitude
+                });
+                return {
+                    ...parsedResponse,
+                    distance: originDistance
+                };
+            });
     },
     {
         authorizationType: "AWS_IAM",
-        success: { contentType: "application/json" },
         error: { contentType: "application/json" }
     }
 );
 
 /*
-Details of a location: name, latitude, longitude, all additional data, a calculated distance to our office (bee line distance, no map service; lat: 52.502931, lng: 13.408249).
+All locations
 */
 api.get(
     "/locations",
@@ -86,24 +96,14 @@ api.get(
             .scan(params)
             .promise()
             .then(response => {
-                let adjustedResponse = response.Items.map(item => {
-                    let { latitude: lat, longitude: lng } = JSON.parse(item);
-                    let itemLocation = { lat, lng };
-                    let distanceFromDestination = calcDistance(
-                        itemLocation,
-                        target
-                    );
-                    return {
-                        ...item,
-                        distance: distanceFromDestination
-                    };
-                });
-                console.log(adjustedResponse);
-                return adjustedResponse;
+                console.log(typeof response, response);
+                let results = JSON.stringify(response.Items);
+                return response.Items;
             });
     },
     {
         authorizationType: "AWS_IAM",
+        success: { contentType: "application/json" },
         error: { contentType: "application/json" }
     }
 );

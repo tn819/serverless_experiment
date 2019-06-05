@@ -1,4 +1,4 @@
-module.exports.calcDistance = (p1, p2) => {
+exports.calcDistance = (p1, p2) => {
     function rad(x) {
         return (x * Math.PI) / 180;
     }
